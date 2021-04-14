@@ -1,0 +1,12 @@
+[submodule "app/src/main/jni/ffmpeg"]
+	path = app/src/main/jni/ffmpeg
+	url = https://git.ffmpeg.org/ffmpeg.git
+[submodule "app/src/main/jni/x264"]
+	path = app/src/main/jni/x264
+	url = https://code.videolan.org/videolan/x264.git
+[submodule "app/src/main/jni/opencv"]
+	path = app/src/main/jni/opencv
+	url = https://github.com/opencv/opencv.git
+[submodule "app/src/main/jni/opencv_contrib"]
+	path = app/src/main/jni/opencv_contrib
+	url = https://github.com/opencv/opencv_contrib.git
