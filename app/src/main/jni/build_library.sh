@@ -44,7 +44,7 @@ function setup() {
         
         arm64)
             # general
-            export PREFIX=./$TARGETPLATFORM/arm64
+            export PREFIX=./$TARGETPLATFORM/arm64-v8a
             export ARCH=aarch64
             export TARGET=$ARCH-linux-android
             ;;

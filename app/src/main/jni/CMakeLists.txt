@@ -15,7 +15,7 @@ project("ztplayer")
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-             native-lib
+             ffmpeg
 
              # Sets the library as a shared library.
              SHARED
@@ -40,9 +40,39 @@ find_library( # Sets the name of the path variable.
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
 
+add_library(avcodec-lib STATIC IMPORTED)
+set_target_properties(avcodec-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavdevice.a)
+
+add_library(avfilter-lib STATIC IMPORTED)
+set_target_properties(avfilter-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavfilter.a)
+
+add_library(avformat-lib STATIC IMPORTED)
+set_target_properties(avformat-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavformat.a)
+
+add_library(avutil-lib STATIC IMPORTED)
+set_target_properties(avutil-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavutil.a)
+
+add_library(postproc-lib STATIC IMPORTED)
+set_target_properties(postproc-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libpostproc.a)
+
+add_library(swresample-lib STATIC IMPORTED)
+set_target_properties(swresample-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libswresample.a)
+
+add_library(swscale-lib STATIC IMPORTED)
+set_target_properties(swscale-lib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libswscale.a)
+
+include_directories(${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/include/)
+
 target_link_libraries( # Specifies the target library.
-                       native-lib
+                       ffmpeg
 
                        # Links the target library to the log library
                        # included in the NDK.
+		       avcodec-lib
+		       avfilter-lib
+		       avformat-lib
+		       avutil-lib
+		       postproc-lib
+		       swresample-lib
+		       swscale-lib
                        ${log-lib} )
