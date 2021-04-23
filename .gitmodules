@@ -10,3 +10,6 @@
 [submodule "app/src/main/jni/opencv_contrib"]
 	path = app/src/main/jni/opencv_contrib
 	url = https://github.com/opencv/opencv_contrib.git
+[submodule "app/src/main/jni/openssl"]
+	path = app/src/main/jni/openssl
+	url = git://git.openssl.org/openssl.git
