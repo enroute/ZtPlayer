@@ -5,13 +5,25 @@ echo "Configure the building toolchains properly before starting."
 NDK="$HOME/ndk"
 HOST='linux-x86_64'
 
+
 X264='x264'
 # x264 branch to checkout
 X264_BRANCH='stable'
 
+
+# openssl 
+OPENSSL='openssl'
+# openssl branch to checkout
+# branch 1.1.1 stable fails with NDK r22
+# https://github.com/openssl/openssl/pull/13694
+# OPENSSL_BRANCH='OpenSSL_1_1_1-stable'
+OPENSSL_BRANCH='master'
+
+
 FFMPEG='ffmpeg'
 # ffmpeg branch to checkout
 FFMPEG_BRANCH='release/4.4'
+
 
 OPENCV='opencv'
 OPENCV_CONTRIB='opencv_contrib'
@@ -25,18 +37,16 @@ API=22
 TARGETPLATFORM='android'
 
 
-function setup_arch() {
-    arch=$1
+function setup() {
+    ABI=$1
 
-    case $arch in
+    case $ABI in
         
         arm64)
             # general
             export PREFIX=./$TARGETPLATFORM/arm64
-            export TARGET=aarch64-linux-android
-
-            # for ffmpeg
             export ARCH=aarch64
+            export TARGET=$ARCH-linux-android
             ;;
 
         *)
@@ -62,8 +72,8 @@ function setup_arch() {
 
 
 function build_x264() {
-    arch=$1
-    setup_arch $arch
+    ABI=$1
+    setup $ABI
 
   ./configure \
       --prefix=$PREFIX \
@@ -78,12 +88,27 @@ function build_x264() {
 }
 
 
+function build_openssl() {
+    ABI=$1
+    #setup $ABI
+
+    export ANDROID_NDK_HOME="$NDK"
+    PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_HOME/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin:$PATH
+    # openssl requires absolute path for --prefix
+    PREFIX=$(readlink -f ".")"/android/$ABI"
+    ./Configure android-$ABI -D__ANDROID_API__=29 -no-shared --prefix=$PREFIX -DOPENSSL_NO_DEPRECATED_1_1_0
+    make
+    make install
+}
+
+
 function build_ffmpeg {
     # https://github.com/bilibili/ijkplayer/issues/4093
     # use --disable-linux-perf to fix B0 issues
-    arch=$1
-    setup_arch $arch
+    ABI=$1
+    setup $ABI
 
+    export PKG_CONFIG_PATH="../openssl/android/amd64/lib/pkgconfig"
     ./configure \
         --target-os=android \
         --prefix=$PREFIX \
@@ -108,15 +133,17 @@ function build_ffmpeg {
         --enable-small \
         --enable-cross-compile \
         --extra-libs="-lgcc" \
-        --arch=aarch64 \
+        --arch=$ARCH \
         --cross-prefix=$PREBUILT/bin/aarch64-linux-android- \
         --extra-ldflags="-lx264 -nostdlib -lc -lm -ldl -llog" \
         --enable-zlib \
         --enable-gpl \
+        --enable-nonfree \
+        --enable-openssl \
         --enable-libx264 \
         --disable-linux-perf \
-        --extra-cflags="-I../x264/android/arm64/include" \
-        --extra-ldflags="-L../x264/android/arm64/lib"
+        --extra-cflags="-I../x264/android/arm64/include -I../$OPENSSL/android/arm64/include" \
+        --extra-ldflags="-L../x264/android/arm64/lib -L../$OPENSSL/android/arm64/lib -lssl -lcrypto"
 
     #make clean
     make -j4
@@ -128,6 +155,12 @@ function build_ffmpeg {
 # git checkout $X264_BRANCH
 # build_x264 arm64
 # cd ..
+
+# cd $OPENSSL
+# git checkout $OPENSSL_BRANCH
+# build_openssl arm64
+# cd ..
+
 
 cd $FFMPEG
 git checkout $FFMPEG_BRANCH
