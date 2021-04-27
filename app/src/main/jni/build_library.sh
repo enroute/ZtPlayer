@@ -5,6 +5,14 @@ echo "Configure the building toolchains properly before starting."
 NDK="$HOME/ndk"
 HOST='linux-x86_64'
 
+# for opencv
+export ANDROID_NDK=$NDK
+export ANDROID_SDK="$HOME/sdk"
+
+# # for building opencv, use system cmake
+# export PATH=$PATH:"$HOME/sdk/cmake/3.10.2.4988404/bin"
+# export CMAKE="$HOME/sdk/cmake/3.10.2.4988404/bin/cmake"
+
 
 X264='x264'
 # x264 branch to checkout
@@ -25,8 +33,12 @@ FFMPEG='ffmpeg'
 FFMPEG_BRANCH='release/4.4'
 
 
-OPENCV='opencv'
 OPENCV_CONTRIB='opencv_contrib'
+OPENCV_CONTRIB_BRANCH='4.5.2'
+
+
+OPENCV='opencv'
+OPENCV_BRANCH='4.5.2'
 
 
 
@@ -41,10 +53,13 @@ function setup() {
     ABI=$1
 
     case $ABI in
-        
+
         arm64)
             # general
-            export PREFIX=./$TARGETPLATFORM/arm64-v8a
+            export PREFIX=$TARGETPLATFORM/arm64-v8a
+            # opencv use absolute path, so install ffmpeg static libraries with absolute prefix
+            export ABSOLUTE_PREFIX=$(readlink -f ".")"/"$PREFIX
+
             export ARCH=aarch64
             export TARGET=$ARCH-linux-android
             ;;
@@ -111,7 +126,7 @@ function build_ffmpeg {
     export PKG_CONFIG_PATH="../openssl/android/amd64/lib/pkgconfig"
     ./configure \
         --target-os=android \
-        --prefix=$PREFIX \
+        --prefix=$ABSOLUTE_PREFIX \
         --enable-static \
         --disable-runtime-cpudetect \
         --disable-doc \
@@ -120,6 +135,7 @@ function build_ffmpeg {
         --disable-ffprobe \
         --disable-programs \
         --disable-ffplay \
+        --enable-avresample \
         --enable-pic \
         --target-os=linux \
         --cross-prefix=$TOOLCHAIN/bin/$TARGET- \
@@ -151,6 +167,39 @@ function build_ffmpeg {
 }
 
 
+function build_opencv_contrib() {
+    ABI=$1
+    setup $ABI
+
+    # export LD_LIBRARY_PATH=../../$FFMPEG/$PREFIX/lib:$LID_LIBRARY_PATH
+    # export PKG_CONFIG_LIBDIR=../../$FFMPEG/$PREFIX/lib/pkgconfig:$PKG_CONFIG_LIBDIR
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:../../$FFMPEG/$PREFIX/lib/pkgconfig
+
+    cmake -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+          -DANDROID_NDK=$NDK \
+          -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+          -DANDROID_NDK=$ANDROID_NDK \
+          -DANDROID_SDK_ROOT=$ANDROID_SDK \
+          -DANDROID_NATIVE_API_LEVEL=30 \
+          -DANDROID_ABI=arm64-v8a \
+          -DWITH_FFMPEG=ON \
+          -DOPENCV_FFMPEG_SKIP_BUILD_CHECK=ON \
+          -DWITH_CUDA=ON \
+          -DWITH_MATLAB=OFF \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_ANDROID_EXAMPLES=OFF \
+          -DBUILD_DOCS=OFF \
+          -DBUILD_PERF_TESTS=OFF \
+          -DBUILD_TESTS=OFF \
+          -DOPENCV_EXTRA_MODULES_PATH="../../$OPENCV_CONTRIB/modules/"  \
+          -DCMAKE_INSTALL_PREFIX=../$PREFIX \
+          ..
+
+    make -j4
+    make install
+}
+
+
 # cd $X264
 # git checkout $X264_BRANCH
 # build_x264 arm64
@@ -161,10 +210,17 @@ function build_ffmpeg {
 # build_openssl arm64
 # cd ..
 
+# cd $FFMPEG
+# git checkout $FFMPEG_BRANCH
+# build_ffmpeg arm64
+# cd ..
 
-cd $FFMPEG
-git checkout $FFMPEG_BRANCH
-build_ffmpeg arm64
+cd $OPENCV_CONTRIB
+git checkout $OPENCV_CONTRIB_BRANCH
+mkdir -p ../$OPENCV/build
+cd ../$OPENCV/build
+git checkout $OPENCV_BRANCH
+build_opencv_contrib arm64
 cd ..
 
 # Local Variables:
