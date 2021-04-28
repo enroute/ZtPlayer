@@ -9,6 +9,9 @@ HOST='linux-x86_64'
 export ANDROID_NDK=$NDK
 export ANDROID_SDK="$HOME/sdk"
 
+# for opencv java
+export ANDROID_NDK_HOME=$NDK
+
 # # for building opencv, use system cmake
 # export PATH=$PATH:"$HOME/sdk/cmake/3.10.2.4988404/bin"
 # export CMAKE="$HOME/sdk/cmake/3.10.2.4988404/bin/cmake"
@@ -128,6 +131,7 @@ function build_ffmpeg {
         --target-os=android \
         --prefix=$ABSOLUTE_PREFIX \
         --enable-static \
+        --enable-shared \
         --disable-runtime-cpudetect \
         --disable-doc \
         --disable-debug \
@@ -171,10 +175,12 @@ function build_opencv_contrib() {
     ABI=$1
     setup $ABI
 
-    # export LD_LIBRARY_PATH=../../$FFMPEG/$PREFIX/lib:$LID_LIBRARY_PATH
-    # export PKG_CONFIG_LIBDIR=../../$FFMPEG/$PREFIX/lib/pkgconfig:$PKG_CONFIG_LIBDIR
+    export LD_LIBRARY_PATH=../../$FFMPEG/$PREFIX/lib:$LID_LIBRARY_PATH
+    export PKG_CONFIG_LIBDIR=../../$FFMPEG/$PREFIX/lib/pkgconfig:../../$FFMPEG/$PREFIX/lib/:$PKG_CONFIG_LIBDIR
     export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:../../$FFMPEG/$PREFIX/lib/pkgconfig
 
+    # ld could not find -lavutil when building Java, disable it for the moment
+    #      -DBUILD_JAVA=OFF \
     cmake -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           -DANDROID_NDK=$NDK \
           -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
@@ -184,6 +190,7 @@ function build_opencv_contrib() {
           -DANDROID_ABI=arm64-v8a \
           -DWITH_FFMPEG=ON \
           -DOPENCV_FFMPEG_SKIP_BUILD_CHECK=ON \
+          -DBUILD_JAVA=ON \
           -DWITH_CUDA=ON \
           -DWITH_MATLAB=OFF \
           -DBUILD_SHARED_LIBS=OFF \
@@ -195,6 +202,9 @@ function build_opencv_contrib() {
           -DCMAKE_INSTALL_PREFIX=../$PREFIX \
           ..
 
+    # fix: need to add ffmpeg and x264 lib path after config to the following generated file:
+    # modules/java/jni/CMakeFiles/opencv_java.dir/link.txt
+    # -L/path/to/x264/lib -L/path/to/ffmpeg/lib
     make -j4
     make install
 }
