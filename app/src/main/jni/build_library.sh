@@ -50,6 +50,9 @@ SYSROOT=$NDK/toolchains/llvm/prebuilt/$HOST/sysroot
 API=22
 
 TARGETPLATFORM='android'
+# for opencv, use absolute path always
+FFMPEG_ABS_PATH=$(readlink -f ".")"/"$FFMPEG"/"$TARGETPLATFORM
+
 
 
 function setup() {
@@ -175,10 +178,16 @@ function build_opencv_contrib() {
     ABI=$1
     setup $ABI
 
+    ANDROID_ABI=arm64-v8a
+
     export LD_LIBRARY_PATH=../../$FFMPEG/$PREFIX/lib:$LID_LIBRARY_PATH
     export PKG_CONFIG_LIBDIR=../../$FFMPEG/$PREFIX/lib/pkgconfig:../../$FFMPEG/$PREFIX/lib/:$PKG_CONFIG_LIBDIR
     export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:../../$FFMPEG/$PREFIX/lib/pkgconfig
 
+          # -Dpkgcfg_lib_FFMPEG_avformat=$FFMPEG_ABS_PATH/lib/libavformat.a \
+          # -Dpkgcfg_lib_FFMPEG_avcodec=$FFMPEG_ABS_PATH/lib/libavcodec.a \
+          # -Dpkgcfg_lib_FFMPEG_avutil=$FFMPEG_ABS_PATH/lib/libavutil.a \
+          # -Dpkgcfg_lib_FFMPEG_swscale=$FFMPEG_ABS_PATH/libswscale.a \
     # ld could not find -lavutil when building Java, disable it for the moment
     #      -DBUILD_JAVA=OFF \
     cmake -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
@@ -186,11 +195,11 @@ function build_opencv_contrib() {
           -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
           -DANDROID_NDK=$ANDROID_NDK \
           -DANDROID_SDK_ROOT=$ANDROID_SDK \
-          -DANDROID_NATIVE_API_LEVEL=30 \
+          -DANDROID_NATIVE_API_LEVEL=26 \
           -DANDROID_ABI=arm64-v8a \
           -DWITH_FFMPEG=ON \
           -DOPENCV_FFMPEG_SKIP_BUILD_CHECK=ON \
-          -DBUILD_JAVA=ON \
+          -DBUILD_JAVA=OFF \
           -DWITH_CUDA=ON \
           -DWITH_MATLAB=OFF \
           -DBUILD_SHARED_LIBS=OFF \
@@ -200,6 +209,8 @@ function build_opencv_contrib() {
           -DBUILD_TESTS=OFF \
           -DOPENCV_EXTRA_MODULES_PATH="../../$OPENCV_CONTRIB/modules/"  \
           -DCMAKE_INSTALL_PREFIX=../$PREFIX \
+          -DFFMPEG_INCLUDE_DIRS=$FFMPEG_ABS_PATH/$ANDROID_ABI/include \
+          -DFFMPEG_LIBRARIES=$FFMPEG_ABS_PATH/$ANDROID_ABI/lib \
           ..
 
     # fix: need to add ffmpeg and x264 lib path after config to the following generated file:
