@@ -2,7 +2,7 @@
 
 echo "Configure the building toolchains properly before starting."
 
-NDK="$HOME/ndk"
+NDK="$HOME/sdk/ndk/21.1.6352462"
 HOST='linux-x86_64'
 
 # for opencv
@@ -134,7 +134,7 @@ function build_ffmpeg {
         --target-os=android \
         --prefix=$ABSOLUTE_PREFIX \
         --enable-static \
-        --enable-shared \
+        --disable-shared \
         --disable-runtime-cpudetect \
         --disable-doc \
         --disable-debug \
@@ -198,8 +198,9 @@ function build_opencv_contrib() {
           -DANDROID_NATIVE_API_LEVEL=26 \
           -DANDROID_ABI=arm64-v8a \
           -DWITH_FFMPEG=ON \
+          -DBUILD_opencv_apps=OFF \
           -DOPENCV_FFMPEG_SKIP_BUILD_CHECK=ON \
-          -DBUILD_JAVA=OFF \
+          -DBUILD_JAVA=ON \
           -DWITH_CUDA=ON \
           -DWITH_MATLAB=OFF \
           -DBUILD_SHARED_LIBS=OFF \
