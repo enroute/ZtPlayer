@@ -24,9 +24,9 @@ import okhttp3.logging.HttpLoggingInterceptor;
 public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
-    }
+//    static {
+//        System.loadLibrary("native-lib");
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
+//        tv.setText(stringFromJNI());
 
         // startActivity(new Intent(this, CameraActivity.class));
         test();
@@ -47,14 +47,39 @@ public class MainActivity extends AppCompatActivity {
         Paint paint = new Paint();
         paint.setColor(Color.BLUE);
         paint.setStyle(Paint.Style.STROKE);
+
         ZtPlotView.DataSet dataSet = new ZtPlotView.DataSet();
         dataSet.addData(new double[]{0, 0});
         dataSet.addData(new double[]{5, 2});
         dataSet.addData(new double[]{10, 8});
         dataSet.addData(new double[]{15, 6});
-        osillo.setRange(0, 20, 0, 10);
-        osillo.setPadding(5);
-        osillo.addDataSet(dataSet, paint, ZtPlotView.AxisType.AXIS_LEFT);
+        osillo.setRange(0, 100, 0, 10);
+        osillo.setPadding(50);
+
+        ZtPlotView.DataSet dataSetSin = new ZtPlotView.DataSet();
+        ZtPlotView.DataSet dataSetCos = new ZtPlotView.DataSet();
+
+        Paint paintMarker = new Paint();
+        paintMarker.setColor(Color.WHITE);
+        paintMarker.setStyle(Paint.Style.FILL);
+
+        Paint paint2 = new Paint();
+        paint2.setColor(Color.MAGENTA);
+        paint2.setStrokeWidth(2);
+
+        Paint paint3 = new Paint();
+        paint3.setColor(Color.CYAN);
+        paint3.setStrokeWidth(2);
+
+        osillo.setXTicks(0,10,20,40,60,80,100);
+        osillo.setXLabels("0", "10", "20", "40", "60", "80", "100");
+
+        osillo.setYTicks(0,2,4,6,8,10);
+        osillo.setYLabels("", "2", "4", "6", "8", "10");
+
+        osillo.addDataSet(dataSet, paint, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerTriangle(8, paintMarker));
+        osillo.addDataSet(dataSetSin, paint2, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerSquare(5, paintMarker));
+        osillo.addDataSet(dataSetCos, paint3, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerStar(10, paintMarker));
 
         new Thread(new Runnable() {
             @Override
@@ -63,13 +88,15 @@ public class MainActivity extends AppCompatActivity {
                 Random random = new Random();
                 while (true) {
                     dataSet.addData(new double[]{x, random.nextInt(9)});
+                    dataSetSin.addData(new double[]{x, Math.sin(x * 2 * Math.PI / 100) * 4 + 4});
+                    dataSetCos.addData(new double[]{x, Math.cos(x * 2 * Math.PI / 100) * 4 + 4});
                     x++;
-                    if (x > 20) {
-                        osillo.setRange(0, x, 0, 10);
-                    }
+//                    if (x > 20) {
+//                        osillo.setRange(0, x, 0, 10);
+//                    }
                     osillo.postInvalidate();
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(300);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
