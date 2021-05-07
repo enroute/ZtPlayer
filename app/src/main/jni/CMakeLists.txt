@@ -74,6 +74,12 @@ find_package(OpenCV REQUIRED)
 #link_directories("${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/")
 LINK_LIBRARIES("${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavutil.a")
 
+# for native camera API
+find_library( camera-lib camera2ndk )
+find_library( media-lib mediandk )
+find_library( android-lib android )
+find_library( gl-lib GLESv2 )
+
 target_link_libraries( # Specifies the target library.
                        ffmpeg
 
@@ -90,4 +96,5 @@ target_link_libraries( # Specifies the target library.
 		       "/home/mario/ztplayer/app/src/main/jni/ffmpeg/android/arm64-v8a/lib/libavutil.so"
 		       "${CMAKE_SOURCE_DIR}/ffmpeg/android/${ANDROID_ABI}/lib/libavutil.a"
 		       ${OpenCV_LIBS}
+		       ${camera-lib} ${media-lib} ${android-lib} ${gl-lib}
                        ${log-lib} )
