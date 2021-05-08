@@ -49,10 +49,10 @@ public class MainActivity extends AppCompatActivity {
         paint.setStyle(Paint.Style.STROKE);
 
         ZtPlotView.DataSet dataSet = new ZtPlotView.DataSet();
-        dataSet.addData(new double[]{0, 0});
-        dataSet.addData(new double[]{5, 2});
-        dataSet.addData(new double[]{10, 8});
-        dataSet.addData(new double[]{15, 6});
+//        dataSet.addData(new double[]{0, 0});
+//        dataSet.addData(new double[]{5, 2});
+//        dataSet.addData(new double[]{10, 8});
+//        dataSet.addData(new double[]{15, 6});
         osillo.setRange(0, 100, 0, 10);
         osillo.setPadding(50);
 
@@ -65,24 +65,34 @@ public class MainActivity extends AppCompatActivity {
 
         Paint paint2 = new Paint();
         paint2.setColor(Color.MAGENTA);
-        paint2.setStrokeWidth(2);
+        paint2.setStrokeWidth(8);
 
         Paint paint3 = new Paint();
         paint3.setColor(Color.CYAN);
         paint3.setStrokeWidth(2);
 
-        osillo.setXTicks(0,10,20,40,60,80,100);
-        osillo.setXLabels("0", "10", "20", "40", "60", "80", "100");
+        //osillo.setXTicks(0,10,20,40,60,80,100);
+        //osillo.setXLabels("0", "10", "20", "40", "60", "80", "100");
+        osillo.setXLabelsFixed("-50", "-40", "-30", "-20", "-10", "0");
 
         osillo.setYTicks(0,2,4,6,8,10);
         osillo.setYLabels("", "2", "4", "6", "8", "10");
+        osillo.setYLabelsRight("Apple", "Berry", "Carrot", "Dumplings", "Eggplant", "Fruits");
 
-        osillo.addDataSet(dataSet, paint, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerTriangle(8, paintMarker));
-        osillo.addDataSet(dataSetSin, paint2, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerSquare(5, paintMarker));
-        osillo.addDataSet(dataSetCos, paint3, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerStar(10, paintMarker));
+        osillo.addDataSet(dataSet, paint, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerStar(8, paintMarker));
+        osillo.addDataSet(dataSetSin, paint2, ZtPlotView.AxisType.AXIS_LEFT, null);
+        osillo.addDataSet(dataSetCos, null, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerBar(10, paintMarker, osillo));
 
-        // set font size
-        osillo.setFontScaledSize(getResources().getDimensionPixelSize(R.dimen.plot_font_size));
+        Paint textPaint = new Paint();
+        textPaint.setColor(Color.WHITE);
+        textPaint.setAntiAlias(true);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(getResources().getDimensionPixelSize(R.dimen.plot_font_size));
+        osillo.setTextPaint(textPaint);
+
+        Paint gridPaint = new Paint();
+        gridPaint.setColor(Color.GRAY);
+        osillo.setGridPaint(gridPaint);
 
         new Thread(new Runnable() {
             @Override
@@ -95,8 +105,9 @@ public class MainActivity extends AppCompatActivity {
                     dataSetCos.addData(new double[]{x, Math.cos(x * 2 * Math.PI / 100) * 4 + 4});
                     x++;
 //                    if (x > 20) {
-//                        osillo.setRange(0, x, 0, 10);
+//                        osillo.setRange(Math.max(x - 100, 0), x, 0, 10);
 //                    }
+                    osillo.setRange(x - 100, x, 0, 10);
                     osillo.postInvalidate();
                     try {
                         Thread.sleep(300);

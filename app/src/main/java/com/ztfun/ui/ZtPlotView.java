@@ -67,77 +67,123 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         drawView(canvas);
     }
 
-    // font size, which could be obtained by
-    // getResources().getDimensionPixelSize(R.dimen.myFontSize);
-    private int fontScaledSize = -1;
-    public void setFontScaledSize(int fontScaledSize) {
-        this.fontScaledSize = fontScaledSize;
-    }
+    private Paint textPaint;
+    private Paint gridPaint;
+    private int backgroundColor = Color.DKGRAY; // default background color
+    public void setTextPaint(Paint textPaint) { this.textPaint = textPaint; }
+    public void setGridPaint(Paint gridPaint) { this.gridPaint = gridPaint; }
+    public void setBackgroundColor(int backgroundColor) { this.backgroundColor = backgroundColor; }
 
     private void drawGrids(Canvas canvas) {
-        Paint paint = new Paint();
-        paint.setColor(Color.WHITE);
-        paint.setAntiAlias(true);
-        paint.setTextAlign(Paint.Align.CENTER);
-
-        paint.setTextSize(fontScaledSize <= 0 ? (float) (12 * Math.sqrt(canvas.getWidth() * canvas.getHeight()) / 250)
-                : fontScaledSize);
-
         if (xTicks != null) {
             for (int i = 0; i < xTicks.length; i ++) {
                 Point3 pt = toCanvasCoordinate(new Point3(xTicks[i], 0, 0));
-                canvas.drawLine((float)pt.x, height - paddingBottom, (float)pt.x, paddingTop, paint);
+                canvas.drawLine((float)pt.x, height - paddingBottom, (float)pt.x, paddingTop, gridPaint);
 
-                // xlabel
                 if (xLabels != null && xLabels.length >= i) {
-                    //canvas.drawText(xLabels[i], (float)pt.x, (float)pt.y, paint);
-                    drawText(canvas, xLabels[i], (float)pt.x, (float)pt.y, paint, TEXT_ALIGN_CENTER_HORIZONTAL | TEXT_ALIGN_TOP);
+                    drawText(canvas, xLabels[i], (float)pt.x, (float)pt.y, textPaint, TEXT_ALIGN_CENTER_HORIZONTAL | TEXT_ALIGN_TOP);
                 }
+            }
+        }
+
+        if (xLabelsFixed != null && xLabelsFixed.length > 0) {
+            double dx = 0;
+            double xStart = paddingLeft;
+            if (xLabelsFixed.length == 1) {
+                // only one, make it center
+                dx = (drawWidth) / 2.0;
+                xStart = paddingLeft + dx;
+            } else {
+                dx = (drawWidth) * 1.0 / (xLabelsFixed.length - 1);
+            }
+
+            for (String s : xLabelsFixed) {
+                canvas.drawLine((float) xStart, height - paddingBottom, (float) xStart, paddingTop, gridPaint);
+                drawText(canvas, s, (float) xStart, height - paddingBottom, textPaint, TEXT_ALIGN_CENTER_HORIZONTAL | TEXT_ALIGN_TOP);
+                xStart += dx;
             }
         }
 
         if (yTicks != null) {
-            paint.setTextAlign(Paint.Align.RIGHT);
             for (int i = 0; i < yTicks.length; i ++) {
                 Point3 pt = toCanvasCoordinate(new Point3(0, yTicks[i], 0));
-                canvas.drawLine(paddingLeft, (float)pt.y, width - paddingRight, (float)pt.y, paint);
+                canvas.drawLine(paddingLeft, (float)pt.y, width - paddingRight, (float)pt.y, gridPaint);
 
                 if (yLabels != null && yLabels.length >= i) {
-                    // canvas.drawText(yLabels[i], (float)pt.x, (float)pt.y, paint);
-                    drawText(canvas, yLabels[i], (float)pt.x, (float)pt.y, paint, TEXT_ALIGN_CENTER_VERTICAL | TEXT_ALIGN_RIGHT);
+                    drawText(canvas, yLabels[i], (float)pt.x, (float)pt.y, textPaint, TEXT_ALIGN_CENTER_VERTICAL | TEXT_ALIGN_RIGHT);
+                }
+
+                if (yLabelsRight != null && yLabelsRight.length >= i) {
+                    drawText(canvas, yLabelsRight[i], (float)(width - paddingRight), (float)pt.y, textPaint, TEXT_ALIGN_CENTER_VERTICAL | TEXT_ALIGN_LEFT);
                 }
             }
         }
+    }
+
+    public interface IDrawHook {
+        void beforeHook(Canvas canvas);
+        void afterHook(Canvas canvas);
+    }
+    private List<IDrawHook> drawHooks = new ArrayList<>();
+    public void registerDrawHook(IDrawHook drawHook) {
+        drawHooks.add(drawHook);
+    }
+    public void unregisterDrawHook(IDrawHook drawHook) {
+        drawHooks.remove(drawHook);
     }
 
     public void drawView(Canvas canvas) {
         canvas.save();
 
+        // call draw hooks
+        for (IDrawHook hook : drawHooks) {
+            hook.beforeHook(canvas);
+        }
+
+        // background
+        canvas.drawColor(backgroundColor);
+
+        // grids
         drawGrids(canvas);
 
         // clip with an extra pixel to include the border
         canvas.clipRect(paddingLeft - 1, paddingTop - 1,
                 getWidth() - paddingRight + 1, getHeight() - paddingBottom + 1);
 
-        for (DataSetProperty dsp : dataSets) {
-            if (dsp.dataSet.data.size() <= 0) {
+        // draw data set
+        for (PlotConfig plot : dataSets) {
+            if (plot.dataSet.data.size() <= 0) {
                 continue;
-            } else if (dsp.dataSet.data.size() == 1) {
-                Point3 point = dsp.dataSet.data.get(0);
-                dsp.marker.draw(canvas, point.x, point.y);
+            } else if (plot.dataSet.data.size() == 1) {
+                Point3 point = plot.dataSet.data.get(0);
+                if (plot.marker != null) {
+                    plot.marker.draw(canvas, point.x, point.y);
+                }
                 continue;
             }
 
             int i = 0;
-            Point3 point1 = toCanvasCoordinate(dsp.dataSet.data.get(i));
-            dsp.marker.draw(canvas, point1.x, point1.y);
-            for (i = 1; i < dsp.dataSet.data.size(); i++) {
-                Point3 point2 = toCanvasCoordinate(dsp.dataSet.data.get(i));
-                canvas.drawLine((float) point1.x, (float) point1.y, (float) point2.x, (float) point2.y, dsp.paint);
-                dsp.marker.draw(canvas, point2.x, point2.y);
-                // Log.d(TAG, "draw line from " + point1 + " to " + point2 + ", origin=" + dsp.dataSet.data.get(i));
+            Point3 point1 = toCanvasCoordinate(plot.dataSet.data.get(i));
+            if (plot.marker != null) {
+                plot.marker.draw(canvas, point1.x, point1.y);
+                plot.marker.hookBeforeDraw(canvas, plot);
+            }
+            for (i = 1; i < plot.dataSet.data.size(); i++) {
+                Point3 point2 = toCanvasCoordinate(plot.dataSet.data.get(i));
+                if (plot.paint != null) {
+                    canvas.drawLine((float) point1.x, (float) point1.y, (float) point2.x, (float) point2.y, plot.paint);
+                }
+                if (plot.marker != null) {
+                    plot.marker.draw(canvas, point2.x, point2.y);
+                }
+                // Log.d(TAG, "draw line from " + point1 + " to " + point2 + ", origin=" + plot.dataSet.data.get(i));
                 point1 = point2;
             }
+        }
+
+        // call draw hooks
+        for (IDrawHook hook : drawHooks) {
+            hook.afterHook(canvas);
         }
 
         canvas.restore();
@@ -171,20 +217,17 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         this.paddingRight = paddingRight;
     }
 
-    private double[] xTicks, yTicks, yTicksRight;
-    private String[] xLabels, yLabels, yLabelsRight;
-    public void setXTicks(double... xTicks) {
-        this.xTicks = xTicks;
-    }
-    public void setXLabels(String... xLabels) {
-        this.xLabels = xLabels;
-    }
-    public void setYTicks(double... yTicks) {
-        this.yTicks = yTicks;
-    }
-    public void setYTicksRight(double... yTicksRight) {
-        this.yTicksRight = yTicksRight;
-    }
+    private double[] xTicks, yTicks; //, yTicksRight;
+    private String[] xLabels, yLabels, yLabelsRight, xLabelsFixed;
+
+    public void setXTicks(double... xTicks) { this.xTicks = xTicks; }
+    public void setXLabelsFixed(String... xLabelsFixed) { this.xLabelsFixed = xLabelsFixed; }
+    public void setXLabels(String... xLabels) { this.xLabels = xLabels; }
+    public void setYTicks(double... yTicks) { this.yTicks = yTicks; }
+
+//    public void setYTicksRight(double... yTicksRight) {
+//        this.yTicksRight = yTicksRight;
+//    }
     public void setYLabels(String... yLabels) {
         this.yLabels = yLabels;
     }
@@ -212,7 +255,7 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         return dataPoint;
     }
 
-    private final List<DataSetProperty> dataSets = new ArrayList<>();
+    private final List<PlotConfig> dataSets = new ArrayList<>();
 
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
@@ -238,7 +281,7 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public void addDataSet(DataSet dataSet, Paint paint, AxisType axisType, Marker marker) {
-        dataSets.add(new DataSetProperty(dataSet, paint, axisType, marker));
+        dataSets.add(new PlotConfig(dataSet, paint, axisType, marker));
 
         Log.d(TAG, "invalidate after data set changed.");
         if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
@@ -249,13 +292,13 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
-    public static class DataSetProperty {
+    public static class PlotConfig {
         public DataSet dataSet;
         public Paint paint;
         public AxisType axisType;
         public Marker marker;
 
-        public DataSetProperty(DataSet dataSet, Paint paint, AxisType axisType, Marker marker) {
+        public PlotConfig(DataSet dataSet, Paint paint, AxisType axisType, Marker marker) {
             this.dataSet = dataSet;
             this.paint = paint;
             this.axisType = axisType;
@@ -272,7 +315,7 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public static class Marker {
-        protected int size = 1;
+        protected int size;
         protected Paint paint;
         public Marker(int size, Paint paint) {
             this.size = size;
@@ -280,6 +323,9 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         public void draw(Canvas canvas, double x, double y) {}
+
+        // hook before every draw, can be used to make more configurations with other data properties
+        public void hookBeforeDraw(Canvas canvas, PlotConfig plot) {}
     }
 
     public static class MarkerDot extends Marker {
@@ -346,6 +392,34 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
+    public static class MarkerBar extends Marker {
+        ZtPlotView ztPlotView;
+        public MarkerBar(int size, Paint paint, @NonNull ZtPlotView ztPlotView) {
+            super(size, paint);
+            this.ztPlotView = ztPlotView;
+        }
+
+        @Override
+        public void hookBeforeDraw(Canvas canvas, PlotConfig plot) {
+            super.hookBeforeDraw(canvas, plot);
+
+            if (plot.dataSet == null || plot.dataSet.data == null || plot.dataSet.data.size() < 2) {
+                return;
+            }
+
+            // make bar 80% of the gap
+            Point3 pt1 = ztPlotView.toCanvasCoordinate(plot.dataSet.data.get(0));
+            Point3 pt2 = ztPlotView.toCanvasCoordinate(plot.dataSet.data.get(1));
+            size = (int)(Math.abs(pt1.x - pt2.x) * 0.8);
+            Log.d(TAG, "hookBeforeDraw size=" + size);
+        }
+
+        @Override
+        public void draw(Canvas canvas, double x, double y) {
+            canvas.drawRect((float)(x - size / 2.0), (float)y, (float)(x + size / 2.0), canvas.getHeight() - ztPlotView.paddingBottom, paint);
+        }
+    }
+
     private static Path pathByVertices(Point3[] vertices, Point3 offset) throws IndexOutOfBoundsException {
         Path path = new Path();
 
@@ -359,12 +433,11 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public static final int TEXT_ALIGN_CENTER_HORIZONTAL = 1;
-    public static final int TEXT_ALIGN_LEFT = 2;
+    public static final int TEXT_ALIGN_LEFT = 2; // default
     public static final int TEXT_ALIGN_RIGHT = 4;
     public static final int TEXT_ALIGN_CENTER_VERTICAL = 8;
     public static final int TEXT_ALIGN_TOP = 16;
-    public static final int TEXT_ALIGN_BOTTOM = 32;
-
+    public static final int TEXT_ALIGN_BOTTOM = 32; // default
 
     private static void drawText(Canvas canvas, String text, float x, float y, Paint paint, int align) {
         Paint.Align oldAlign = paint.getTextAlign();
@@ -387,9 +460,9 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         if ((align & TEXT_ALIGN_TOP) != 0) {
             y += rect.height();
         }
-        if ((align & TEXT_ALIGN_BOTTOM) != 0) {
-            // pass
-        }
+//        if ((align & TEXT_ALIGN_BOTTOM) != 0) {
+//            // pass
+//        }
 
         canvas.drawText(text, x, y, paint);
         // restore text alignment
