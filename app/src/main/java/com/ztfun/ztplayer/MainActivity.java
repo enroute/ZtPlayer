@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
         osillo.addDataSet(dataSetSin, paint2, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerSquare(5, paintMarker));
         osillo.addDataSet(dataSetCos, paint3, ZtPlotView.AxisType.AXIS_LEFT, new ZtPlotView.MarkerStar(10, paintMarker));
 
+        // set font size
+        osillo.setFontScaledSize(getResources().getDimensionPixelSize(R.dimen.plot_font_size));
+
         new Thread(new Runnable() {
             @Override
             public void run() {

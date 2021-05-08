@@ -67,12 +67,21 @@ public class ZtPlotView extends SurfaceView implements SurfaceHolder.Callback {
         drawView(canvas);
     }
 
+    // font size, which could be obtained by
+    // getResources().getDimensionPixelSize(R.dimen.myFontSize);
+    private int fontScaledSize = -1;
+    public void setFontScaledSize(int fontScaledSize) {
+        this.fontScaledSize = fontScaledSize;
+    }
+
     private void drawGrids(Canvas canvas) {
         Paint paint = new Paint();
         paint.setColor(Color.WHITE);
         paint.setAntiAlias(true);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize((float) (12 * Math.sqrt(canvas.getWidth() * canvas.getHeight()) / 250));
+
+        paint.setTextSize(fontScaledSize <= 0 ? (float) (12 * Math.sqrt(canvas.getWidth() * canvas.getHeight()) / 250)
+                : fontScaledSize);
 
         if (xTicks != null) {
             for (int i = 0; i < xTicks.length; i ++) {
