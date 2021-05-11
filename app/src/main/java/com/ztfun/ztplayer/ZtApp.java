@@ -2,6 +2,7 @@ package com.ztfun.ztplayer;
 
 import android.app.Application;
 
+import com.ztfun.util.AppCache;
 import com.ztfun.util.Log;
 
 public class ZtApp extends Application {
@@ -11,5 +12,9 @@ public class ZtApp extends Application {
 
         // setup log
         Log.isDebug = BuildConfig.DEBUG;
+
+        // setup AppCache context
+        AppCache.getInstance().initialize(this);
+        AppCache.getInstance().with(this).get("db");
     }
 }
